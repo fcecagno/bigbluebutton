@@ -2558,6 +2558,29 @@ var Hacks = module.exports = {
       if (session.mediaHandler) {
         session.mediaHandler.close();
       }
+    },
+
+    removeIPv6ICECandidates: function (sdp) {
+      var sdp_lines = sdp.split("\n");
+      var ice_regex = new RegExp(/a=candidate:\d+ \d+ \w+ \d+ ([^ ]+)/);
+      // http://stackoverflow.com/a/17871737
+      var ipv6_regex = new RegExp("(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))");
+
+      var sdp_new = $.grep(sdp_lines, function(item) {
+        if (ice_regex.test(item)) {
+          // it starts with a=candidate:
+          var ip = ice_regex.exec(item)[1];
+          if (ipv6_regex.test(ip)) {
+            console.log("IPv6 ICE candidate " + ip + " removed from the candidates list");
+            return false;
+          } else {
+            return true;
+          }
+        } else {
+          return true;
+        }
+      });
+      return sdp_new.join("\n");
     }
   }
 };
@@ -10685,6 +10708,7 @@ MediaHandler.prototype = Object.create(SIP.MediaHandler.prototype, {
 
         sdp = SIP.Hacks.Chrome.needsExplicitlyInactiveSDP(sdp);
         sdp = SIP.Hacks.AllBrowsers.unmaskDtls(sdp);
+        sdp = SIP.Hacks.Chrome.removeIPv6ICECandidates(sdp);
 
         var sdpWrapper = {
           type: methodName === 'createOffer' ? 'offer' : 'answer',
