@@ -19,13 +19,14 @@
 package org.bigbluebutton.deskshare.server.red5
 
 import org.red5.server.api.{IContext, IConnection}
+import org.red5.server.api.stream.IBroadcastStream
 import org.red5.server.so.SharedObjectService
 import org.red5.server.api.so.{ISharedObject, ISharedObjectService}
 import org.red5.server.stream.IProviderService
 import org.bigbluebutton.deskshare.server.ScreenVideoBroadcastStream
 import org.bigbluebutton.deskshare.server.RtmpClientAdapter
-import org.bigbluebutton.deskshare.server.stream.StreamManager
 import org.bigbluebutton.deskshare.server.socket.DeskShareServer
+import org.bigbluebutton.deskshare.server.stream._
 import org.bigbluebutton.deskshare.server.MultiThreadedAppAdapter
 import scala.actors.Actor
 import scala.actors.Actor._
@@ -45,6 +46,7 @@ class DeskshareApplication(streamManager: StreamManager, deskShareServer: DeskSh
  
 	private val logger = Logger.get 
 	var appScope: IScope = null
+	var customRtmpStream: IBroadcastStream = null
  
 	override def appStart(app: IScope): Boolean = {
 		logger.debug("deskShare appStart");
@@ -65,7 +67,6 @@ class DeskshareApplication(streamManager: StreamManager, deskShareServer: DeskSh
 	
 	override def appConnect(conn: IConnection, params: Array[Object]): Boolean = {
 		logger.debug("deskShare appConnect to scope " + conn.getScope().getContextPath());
-		var meetingId = params(0).asInstanceOf[String]
 		super.appConnect(conn, params);
 	}
 	
@@ -206,6 +207,29 @@ class DeskshareApplication(streamManager: StreamManager, deskShareServer: DeskSh
 			logger.error("DeskShareStream: Could not register broadcast stream")
 		}
     
-	   return Some(broadcastStream)
+	   	return Some(broadcastStream)
+	}
+
+	override def streamBroadcastStart(stream:IBroadcastStream) {
+		var pubName:String = stream.getPublishedName()
+		// TODO do not hardcode the stream resolution
+		streamManager.addCustomRtmpStream(stream.getPublishedName(), 1024, 576);
+		customRtmpStream = stream
+		super.streamBroadcastStart(stream) 
+		logger.info("streamBroadcastStart [ %s ]", pubName)
+	}
+
+	def stopIBroadcastStream(room:String) {
+		streamManager.destroyStream(room);
+		customRtmpStream.close()
+		streamBroadcastClose(customRtmpStream)
+		logger.info("stopIBroadcastStream [ %s ]", room)
+	}
+
+	override def streamBroadcastClose(stream:IBroadcastStream) {
+		var pubName:String = stream.getPublishedName() 
+		streamManager.destroyStream(pubName)
+		super.streamBroadcastClose(stream)
+		logger.info("streamBroadcastClose [ %s ]", pubName)
 	}
 }

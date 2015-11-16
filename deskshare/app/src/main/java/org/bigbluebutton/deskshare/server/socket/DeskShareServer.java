@@ -45,6 +45,7 @@ public class DeskShareServer {
         acceptor.setHandler( screenCaptureHandler);
         acceptor.getSessionConfig().setIdleTime( IdleStatus.BOTH_IDLE, 10 );
         acceptor.setReuseAddress(true);
+        acceptor.setCloseOnDeactivation(true);
         try {
 			acceptor.bind( new InetSocketAddress(port) );
 		} catch (IOException e) {

@@ -38,6 +38,7 @@ class StreamManager(record:Boolean, recordingService:RecordingService) extends A
 	private val log = Logger.get
  
 	var app: DeskshareApplication = null
+	var deskStream: DeskshareStream = null
  	
 	def setDeskshareApplication(a: DeskshareApplication) {
 	  app = a
@@ -94,8 +95,25 @@ class StreamManager(record:Boolean, recordingService:RecordingService) extends A
 			case _ => log.error("StreamManager:Exception while creating stream for [ %s ]", room); return None
 	  }
 	}
+
+	def addCustomRtmpStream(room: String, width: Int, height: Int) {
+		deskStream = new DeskshareStream(app, room, width, height, record, recordingService.getRecorderFor(room))
+		this ! new AddStream(room, deskStream)
+	}
  
+	def stopStream(room: String) {
+		app.stopIBroadcastStream(room)
+		if (deskStream != null) {
+			deskStream ! StopStream
+			deskStream = null
+		}
+	}
+
   	def destroyStream(room: String) {
+  		if (deskStream != null) {
+  			deskStream ! StopStream
+  			deskStream = null
+  		}
   		this ! new RemoveStream(room)
   	}  	
    
