@@ -34,23 +34,27 @@ trait UsersApp {
   }
   
   def handleUserConnectedToGlobalAudio(msg: UserConnectedToGlobalAudio) {
-    val user = users.getUserWithExternalId(msg.userid)
+    val user = users.getUser(msg.userid)
     user foreach {u =>
-      val vu = u.voiceUser.copy(talking=false)
-      val uvo = u.copy(listenOnly=true, voiceUser=vu)
-      users.addUser(uvo)
-      logger.info("UserConnectedToGlobalAudio: mid=[" + meetingID + "] uid=[" + uvo.userID + "]")
-      outGW.send(new UserListeningOnly(meetingID, recorded, uvo.userID, uvo.listenOnly))        
+      if (users.addGlobalAudioConnection(msg.userid)) {
+        val vu = u.voiceUser.copy(talking=false)
+        val uvo = u.copy(listenOnly=true, voiceUser=vu)
+        users.addUser(uvo)
+        logger.info("UserConnectedToGlobalAudio: mid=[" + meetingID + "] uid=[" + uvo.userID + "]")
+        outGW.send(new UserListeningOnly(meetingID, recorded, uvo.userID, uvo.listenOnly))
+      }
     }
   }
   
   def handleUserDisconnectedFromGlobalAudio(msg: UserDisconnectedFromGlobalAudio) {
-    val user = users.getUserWithExternalId(msg.userid)
+    val user = users.getUser(msg.userid)
     user foreach {u =>
-      val uvo = u.copy(listenOnly=false)
-      users.addUser(uvo)
-      logger.info("UserDisconnectedToGlobalAudio: mid=[" + meetingID + "] uid=[" + uvo.userID + "]")
-      outGW.send(new UserListeningOnly(meetingID, recorded, uvo.userID, uvo.listenOnly))        
+      if (users.removeGlobalAudioConnection(msg.userid)) {
+        val uvo = u.copy(listenOnly=false)
+        users.addUser(uvo)
+        logger.info("UserDisconnectedToGlobalAudio: mid=[" + meetingID + "] uid=[" + uvo.userID + "]")
+        outGW.send(new UserListeningOnly(meetingID, recorded, uvo.userID, uvo.listenOnly))
+      }
     }
   }
   
@@ -282,6 +286,7 @@ trait UsersApp {
 
       val uvo = users.getUser(msg.userID) match {
         case Some(u) => {
+          unshareAllWebcamsForUser(u.userID)
           if (u.voiceUser.joined) {
             if (u.reconnecting) {
               logger.info("User reconnected: mid=[" + meetingID + "] uid=[" + msg.userID + "]")
@@ -290,13 +295,10 @@ trait UsersApp {
             }
             vu = u.voiceUser.copy()
           }
-          // didn't find a better way to clone the ListSet
-          var webcamStreams = new ListSet[String]()
-          u.webcamStreams.foreach((s: String) => webcamStreams += s)
           new UserVO(msg.userID, ru.externId, ru.name,
-                      ru.role, ru.guest, waitingForAcceptance=waitingForAcceptance, mood=u.mood, presenter=u.presenter,
+                      ru.role, ru.guest, waitingForAcceptance=waitingForAcceptance, mood=u.mood, presenter=false,
                       hasStream=u.hasStream, locked=u.locked,
-                      webcamStreams=webcamStreams, phoneUser=u.phoneUser, vu, listenOnly=u.listenOnly, reconnecting=false, reconnectionTimer=null)
+                      webcamStreams=new ListSet[String](), phoneUser=u.phoneUser, vu, listenOnly=u.listenOnly, reconnecting=false, reconnectionTimer=null)
         }
         case None => {
           new UserVO(msg.userID, ru.externId, ru.name,
@@ -339,10 +341,6 @@ trait UsersApp {
 
           val uvo = u.copy(reconnecting=true, reconnectionTimer=timerActor, hasStream=false, webcamStreams=new ListSet[String]())
           users.addUser(uvo)
-
-          u.webcamStreams.foreach((s: String) => {
-            outGW.send(new UserUnsharedWebcam(meetingID, recorded, u.userID, s))
-          })
 
           timerActor.start
         } else {
@@ -560,6 +558,14 @@ trait UsersApp {
     getRegisteredUser(userID) match {
       case Some(ru) => regUsers -= ru.authToken
       case None =>
+    }
+  }
+
+  def unshareAllWebcamsForUser(userID: String) {
+    users.getUser(userID) foreach { user =>
+      user.webcamStreams.foreach { stream =>
+        this ! new UserUnshareWebcam(meetingID, user.userID, stream)
+      }
     }
   }
 }
