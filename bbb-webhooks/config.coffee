@@ -64,7 +64,9 @@ config.mappings.cleanupInterval = 10000 # 10 secs, in ms
 config.mappings.timeout = 1000*60*60*24 # 24 hours, in ms
 
 # Redis
-config.redis = {}
+config.redis or= {}
+config.redis.host or= "127.0.0.1"
+config.redis.port or= 6379
 config.redis.keys = {}
 config.redis.keys.hook = (id) -> "bigbluebutton:webhooks:hook:#{id}"
 config.redis.keys.hooks = "bigbluebutton:webhooks:hooks"
