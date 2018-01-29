@@ -13,8 +13,8 @@ module.exports = class Application
 
   constructor: ->
     # one for pub/sub, another to read/write data
-    config.redis.pubSubClient = redis.createClient()
-    config.redis.client = redis.createClient()
+    config.redis.pubSubClient = redis.createClient(config.redis.port, config.redis.host)
+    config.redis.client = redis.createClient(config.redis.port, config.redis.host)
     
     @webHooks = new WebHooks()
     @webServer = new WebServer()
