@@ -12,9 +12,10 @@ WebServer = require("./web_server")
 module.exports = class Application
 
   constructor: ->
+    redisHost = process.env.REDIS_HOST || config.redis.host
     # one for pub/sub, another to read/write data
-    config.redis.pubSubClient = redis.createClient(config.redis.port, config.redis.host)
-    config.redis.client = redis.createClient(config.redis.port, config.redis.host)
+    config.redis.pubSubClient = redis.createClient(config.redis.port, redisHost)
+    config.redis.client = redis.createClient(config.redis.port, redisHost)
     
     @webHooks = new WebHooks()
     @webServer = new WebServer()
