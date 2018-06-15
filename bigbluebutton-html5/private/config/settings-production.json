@@ -57,11 +57,11 @@
     },
 
     "kurento": {
-      "wsUrl": "HOST",
+      "wsUrl": "wss://felipe-docker.mconf.com/bbb-webrtc-sfu",
       "chromeExtensionKey": "KEY",
       "chromeExtensionLink": "LINK",
-      "enableScreensharing": false,
-      "enableVideo": false
+      "enableScreensharing": true,
+      "enableVideo": true
     },
 
     "acl": {
