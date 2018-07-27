@@ -16,7 +16,7 @@ Logger.remove(winston.transports.Console);
 describe('bbb-webhooks tests', () => {
   before( (done) => {
     config.hooks.queueSize = 10;
-    config.hooks.permanentURLs = ["http://wh.requestcatcher.com"];
+    config.hooks.permanentURLs = [ { url: "http://wh.requestcatcher.com", getRaw: true } ];
     application = new Application();
     application.start( () => {
       done();
@@ -112,7 +112,7 @@ describe('bbb-webhooks tests', () => {
       .expect('Content-Type', /text\/xml/)
       .expect(200, (res) => {
         const hooks = Hook.allGlobalSync();
-        if (hooks && hooks[0].callbackURL == config.hooks.permanentURLs[0]) {
+        if (hooks && hooks[0].callbackURL == config.hooks.permanentURLs[0].url) {
           done();
         }
         else {
@@ -223,7 +223,7 @@ describe('bbb-webhooks tests', () => {
       const hooks = Hook.allGlobalSync();
       const hook = hooks[0];
 
-      const getpost = nock(config.hooks.permanentURLs[0])
+      const getpost = nock(config.hooks.permanentURLs[0].url)
                       .filteringRequestBody( (body) => {
                         let parsed = JSON.parse(body)
                         return parsed[0].data.id ? "mapped" : "not mapped";
@@ -264,7 +264,7 @@ describe('bbb-webhooks tests', () => {
                       .reply(200, () => {
                         done();
                       });
-      const permanent = nock(config.hooks.permanentURLs[0])
+      const permanent = nock(config.hooks.permanentURLs[0].url)
                         .post("/")
                         .reply(200)
       config.redis.client.publish("test-channel", JSON.stringify(Helpers.rawMessage));
@@ -282,7 +282,7 @@ describe('bbb-webhooks tests', () => {
       const hooks = Hook.allGlobalSync();
       const hook = hooks[0];
       hook.enqueue("multiMessage2")
-      const getpost = nock(config.hooks.permanentURLs[0])
+      const getpost = nock(config.hooks.permanentURLs[0].url)
                       .filteringPath( (path) => {
                         return path.split('?')[0];
                       })
