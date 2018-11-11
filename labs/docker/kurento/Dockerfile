@@ -1,13 +1,19 @@
 FROM ubuntu:16.04
 
+# In order to build kurento dev, use:
+# docker build --build-arg APT_KEY="http://keyserver.ubuntu.com/pks/lookup?op=get&options=mr&search=0xFC8A16625AFA7A83" --build-arg APT_REPO="deb [arch=amd64] http://ubuntu.openvidu.io/dev xenial kms6" -t kurento-dev .
+
+ARG APT_KEY="https://jenkins-live.mconf.com/apt/public.asc"
+ARG APT_REPO="deb https://jenkins-live.mconf.com/apt/development/mconf-200/xenial-2.0.0 mconf-xenial main"
+
 ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update \
  && apt-get -y dist-upgrade \
  && apt-get install -y software-properties-common curl wget apt-transport-https
 
-RUN wget https://ubuntu.bigbluebutton.org/repo/bigbluebutton.asc -O- | apt-key add - \
- && add-apt-repository "deb https://ubuntu.bigbluebutton.org/xenial-200-dev bigbluebutton-xenial main" \
+RUN wget "$APT_KEY" -O- | apt-key add - \
+ && add-apt-repository "$APT_REPO" \
  && apt-get update \
  && apt-get -y install kurento-media-server bzip2 jq \
  && apt-get clean \
@@ -19,10 +25,16 @@ RUN apt-get update \
 COPY ./docker-entrypoint.sh /usr/local/bin/
 COPY ./healthchecker.sh /healthchecker.sh
 
-HEALTHCHECK --start-period=15s --interval=30s --timeout=3s --retries=1 CMD /healthchecker.sh
-
 ENV GST_DEBUG=Kurento*:5
 ENV PORT=8888
+# stun.l.google.com
+ENV STUN_IP=64.233.186.127
+ENV STUN_PORT=19302
+ENV TURN_URL=""
+ENV RTP_MIN_PORT=24577
+ENV RTP_MAX_PORT=32768
+
+HEALTHCHECK --start-period=15s --interval=30s --timeout=3s --retries=1 CMD /healthchecker.sh
 
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["/usr/bin/kurento-media-server"]
