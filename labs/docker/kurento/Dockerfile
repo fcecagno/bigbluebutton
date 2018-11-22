@@ -5,6 +5,7 @@ FROM ubuntu:16.04
 
 ARG APT_KEY="https://jenkins-live.mconf.com/apt/public.asc"
 ARG APT_REPO="deb https://jenkins-live.mconf.com/apt/development/mconf-200/xenial-2.0.0 mconf-xenial main"
+ARG CACHE_BUST=1
 
 ENV DEBIAN_FRONTEND noninteractive
 
