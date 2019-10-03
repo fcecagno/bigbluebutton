@@ -352,7 +352,24 @@ class ToolController {
         if (format.preview.images.image instanceof Map<?,?>) {
             return new ArrayList(format.preview.images.image)
         }
-        return format.preview.images.image
+
+        if (format.preview.images.image instanceof ArrayList) {
+            def images = new ArrayList<Object>()
+
+            for (Object item : format.preview.images.image) {
+                if(item instanceof ArrayList && item.size() > 0) {
+                    images.add(item[0])
+                }
+                if(item instanceof Map<?, ?>) {
+                    images.add(item)
+                }
+            }
+
+            return images
+        }
+
+        // By default leave it empty
+        return new ArrayList()
     }
 
     private String getCartridgeXML(){

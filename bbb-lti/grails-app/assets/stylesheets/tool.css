@@ -3,12 +3,9 @@
     padding: 4px;
     width: 66px;
     float: left;
+    transition: all .1s linear
 }
 
 .thumbnail:hover {
-    display: inline-block;
-    height: auto;
-    position: absolute;
-    width: auto;
-    z-index: 99999;
+    transform: scale(2.0)
 }
