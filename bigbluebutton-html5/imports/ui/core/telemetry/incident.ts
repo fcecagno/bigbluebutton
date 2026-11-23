@@ -13,24 +13,20 @@ export type IncidentTrigger = 'react_error' | 'graphql_error' | 'network_error' 
 // One error tends to cascade into many; one trail per minute is enough to reproduce it
 const MIN_INTERVAL_MS = 60_000;
 const MAX_PER_SESSION = 5;
-const MAX_MESSAGE_LENGTH = 200;
 
 let sent = 0;
 let lastSentAt = 0;
 
 export interface IncidentError {
   errorName: string;
-  errorMessage: string;
   // Plugin whose script threw, when the error carries its file name
   plugin?: string;
 }
 
-const describeError = (error: unknown): IncidentError => {
-  if (error instanceof Error) {
-    return { errorName: error.name, errorMessage: error.message.slice(0, MAX_MESSAGE_LENGTH) };
-  }
-  return { errorName: typeof error, errorMessage: String(error).slice(0, MAX_MESSAGE_LENGTH) };
-};
+// Only the type: messages can quote user content (JSON.parse quotes its input, for one)
+const describeError = (error: unknown): IncidentError => ({
+  errorName: error instanceof Error ? error.name : typeof error,
+});
 
 export const reportIncident = (trigger: IncidentTrigger, error?: unknown, plugin?: string): void => {
   if (!isTelemetryActive() || !getConfig().logToServer) return;
