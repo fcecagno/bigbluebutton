@@ -354,10 +354,12 @@ With `logToServer: true`, the trail also leaves the browser on its own when some
 error caught by an error boundary, a GraphQL or network error, an uncaught exception or an unhandled
 promise rejection. It is sent at most once a minute and five times per session:
 
-- through `clientLog.external`, as a record with `logCode` `repro_trail`;
+- through `clientLog.external`, as a record with `logCode` `repro_trail`, the trigger and the
+  error type;
 - with `exporter: otlp`, also as an OTLP log record with `event.name=bbb.repro_trail`,
-  `exception.type` and the trail as body. The error message stays in the client (debug window), since
-  it can quote user content.
+  `exception.type` and the trail as body.
+
+Neither carries the error message, since it can quote user content.
 
 With `logToServer: false` (the default), the trail never leaves the browser on its own. The `data-test` values match the selectors of the Playwright suite in
 `bigbluebutton-tests/playwright`, so a trail can be replayed as a test skeleton.
